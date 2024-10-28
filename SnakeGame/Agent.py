@@ -140,6 +140,7 @@ def train():
                 agent.model.cache_current_process()
 
             print(f'Game {agent.n_games}, Score: {score}, Record: {record}')
+            game.save_gif('snake_game.gif')
 
             plot_scores.append(score)
             total_score += score
