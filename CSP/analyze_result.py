@@ -3,26 +3,32 @@ from policy import Policy
 import matplotlib.pyplot as plt
 from IPython import display
 import random
+import copy
 
-count = 0
-colors = ['b', 'r', 'g', 'y', 'm', 'c', 'k', 'brown']
+colors = ['b', 'r', 'g', 'y', 'm', 'c', 'k', 'brown', 'orange', 'pink', 'purple', 'olive', 'lime', 'teal', 'navy']
 markers = ['s', 'D', '^', 'v', 'p', '*']
 
 class Result:
-    def __init__(self, policy:Policy, name:str):
-        global count
+    def __init__(self, policy:Policy, name:str, observation, count):
         self.list_result = []
         self.policy = policy
         self.policy_name = name
         self.stock_color = colors[count]
         self.product_color = colors[count + 1]
-        count += 2
+        self.observation = observation
+        self.time_execution = []
 
     def _get_num_stock_not_empty(self, stocks):
         return sum([np.any(stock >= 0) for stock in stocks])
     
     def _stock_is_empty(self, stock):
         return np.all(stock < 0)
+    
+    def get_final_waste(self):
+        num_stock = self.list_result[-1][0]
+        num_empty = self.list_result[-1][1]
+        print(f'Number of stock used: {num_stock}')
+        print(f'Waste: {num_empty}%')
     
     def _get_num_all_empty_regions(self, stocks):
         num_empty_regions = 0
@@ -45,7 +51,7 @@ class Result:
             s_area += w * h
         num_empty /= s_area
         num_empty *= 100
-        print(f'Num Stock: {num_stock}, Num Empty: {num_empty}')
+        # print(f'Num Stock: {num_stock}, Num Empty: {num_empty}')
         self.list_result.append((num_stock, num_empty))
 
     def get_result(self):
@@ -61,15 +67,15 @@ def plot_comparison(
     
     # Create a new figure
     plt.title("Comparison of Policies")
-    plt.xlabel("Episode")
-    plt.ylabel("Values")
+    plt.xlabel("Product(s)")
+    plt.ylabel("Waste (%)")
 
     for result in list_all_result:
         list_result = result.get_result()
-        num_stock = [x[0] for x in list_result]
+        # num_stock = [x[0] for x in list_result]
         num_empty = [x[1] for x in list_result]
-        plt.bar(range(len(num_stock)), num_stock, label=f"{result.policy_name} - Num Stock", color=result.stock_color, alpha=0.5)
-        plt.plot(range(len(num_empty)), num_empty, label=f"{result.policy_name} - Num Empty", color=result.product_color)
+        # plt.bar(range(len(num_stock)), num_stock, label=f"{result.policy_name} - Num Stock", color=result.stock_color, alpha=0.5)
+        plt.plot(range(len(num_empty)), num_empty, label=f"{result.policy_name}", color=result.product_color)
 
     plt.legend()
     plt.show(block=False)
