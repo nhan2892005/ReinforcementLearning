@@ -1,22 +1,44 @@
+import gym_cutting_stock
+import gymnasium as gym
+import numpy as np
 import pulp
 
-# Thông tin về sản phẩm (chiều dài, chiều rộng, số lượng)
-products = [
-    {'size': (2, 3), 'quantity': 3},  # Sản phẩm 1
-    {'size': (1, 5), 'quantity': 2},  # Sản phẩm 2
-    {'size': (4, 2), 'quantity': 1},  # Sản phẩm 3
-]
+env = gym.make(
+                "gym_cutting_stock/CuttingStock-v0",
+                # render_mode="human",
+                min_w=10,
+                min_h=20,
+                max_w=10,
+                max_h=20,
+                num_stocks=5,
+                max_product_type=10,
+                max_product_per_type=3,
+            )
+observation, info = env.reset(seed=42)
+env.close()
 
-# Thông tin về các stock (chiều dài, chiều rộng)
-stocks = [
-    {'size': (10, 10)},  # Stock 1
-    {'size': (15, 5)},   # Stock 2
-]
+def _get_stock_size_(stock):
+    stock_w = np.sum(np.any(stock != -2, axis=1))
+    stock_h = np.sum(np.any(stock != -2, axis=0))
 
-# Khởi tạo bài toán tối ưu hóa
+    return stock_w, stock_h
+
+# Information of products (size, quantity)
+products = observation['products']
+
+stocks = []
+# Get information of stocks (size)
+for stock in observation['stocks']:
+    stock_w, stock_h = _get_stock_size_(stock)
+    stocks.append({'size': (stock_w, stock_h)})
+
+print("Products:", products)
+print("Stocks:", stocks)
+
+# Initialize the problem
 problem = pulp.LpProblem("2D Cutting Stock Problem", pulp.LpMinimize)
 
-# Biến nhị phân x[i][j][k][l] đại diện cho việc có đặt sản phẩm i vào stock j tại vị trí (k, l) hay không
+# Decision variables: x[i, j, k, l] = 1 if product i is placed in stock j at position (k, l)
 x = {}
 for i, product in enumerate(products):
     for j, stock in enumerate(stocks):
@@ -24,20 +46,20 @@ for i, product in enumerate(products):
             for l in range(stock['size'][1] - product['size'][1] + 1):
                 x[(i, j, k, l)] = pulp.LpVariable(f"x_{i}_{j}_{k}_{l}", cat="Binary")
 
-# Hàm mục tiêu: Tối thiểu hóa tổng diện tích stock sử dụng
+# Objective function: Minimize the stock usage
 problem += pulp.lpSum(x[(i, j, k, l)] * stock['size'][0] * stock['size'][1]
                       for i, product in enumerate(products)
                       for j, stock in enumerate(stocks)
                       for k in range(stock['size'][0] - product['size'][0] + 1)
                       for l in range(stock['size'][1] - product['size'][1] + 1)), "Minimize Stock Usage"
 
-# Ràng buộc 1: Mỗi sản phẩm phải được đặt đúng số lượng
+# Constraint 1: Each product must be placed exactly once
 for i, product in enumerate(products):
     problem += pulp.lpSum(x[(i, j, k, l)] for j in range(len(stocks))
                           for k in range(stocks[j]['size'][0] - product['size'][0] + 1)
                           for l in range(stocks[j]['size'][1] - product['size'][1] + 1)) == product['quantity'], f"Product_{i}_Quantity"
 
-# Ràng buộc 2: Không chồng chéo sản phẩm
+# Constraint 2: Non-overlapping constraint
 for j, stock in enumerate(stocks):
     grid = [[0] * stock['size'][1] for _ in range(stock['size'][0])]
     for i, product in enumerate(products):
@@ -46,10 +68,10 @@ for j, stock in enumerate(stocks):
                 for dx in range(product['size'][0]):
                     for dy in range(product['size'][1]):
                         grid[k + dx][l + dy] += x[(i, j, k, l)]
-                # Đảm bảo không vượt quá 1 sản phẩm ở mỗi vị trí
+                # Ensure that the sum of all cells is at most 1
                 problem += grid[k][l] <= 1, f"Non_Overlap_{i}_{j}_{k}_{l}"
 
-# Ràng buộc 3: Sản phẩm không được vượt quá giới hạn của stock
+# Constraint 3: Out of bounds constraint
 for i, product in enumerate(products):
     for j, stock in enumerate(stocks):
         for k in range(stock['size'][0] - product['size'][0] + 1):
@@ -58,13 +80,11 @@ for i, product in enumerate(products):
                 if k + product['size'][0] > stock['size'][0] or l + product['size'][1] > stock['size'][1]:
                     problem += x[(i, j, k, l)] == 0, f"Out_Of_Bounds_{i}_{j}_{k}_{l}"
 
-# Giải bài toán ILP
+# Solve the problem
 problem.solve()
 
-# In kết quả
 print("Trạng thái giải bài toán:", pulp.LpStatus[problem.status])
-
-# In ra các sản phẩm được đặt ở đâu
+# Print the result
 print("Kết quả đặt sản phẩm:")
 for i, product in enumerate(products):
     for j, stock in enumerate(stocks):

@@ -43,6 +43,8 @@ class Result:
         return num_empty_regions
 
     def add_result(self, observation):
+        prods = observation["products"]
+        prods_remain = np.sum([prod['quantity'] for prod in prods])
         num_stock = self._get_num_stock_not_empty(observation["stocks"])
         num_empty = self._get_num_all_empty_regions(observation["stocks"])
         s_area = 0
@@ -52,7 +54,7 @@ class Result:
         num_empty /= s_area
         num_empty *= 100
         # print(f'Num Stock: {num_stock}, Num Empty: {num_empty}')
-        self.list_result.append((num_stock, num_empty))
+        self.list_result.append((num_stock, num_empty, prods_remain))
 
     def get_result(self):
         return self.list_result
@@ -72,10 +74,10 @@ def plot_comparison(
 
     for result in list_all_result:
         list_result = result.get_result()
-        # num_stock = [x[0] for x in list_result]
-        num_empty = [x[1] for x in list_result]
+        num_stock = [x[0] for x in list_result]
+        # num_empty = [x[1] for x in list_result]
         # plt.bar(range(len(num_stock)), num_stock, label=f"{result.policy_name} - Num Stock", color=result.stock_color, alpha=0.5)
-        plt.plot(range(len(num_empty)), num_empty, label=f"{result.policy_name}", color=result.product_color)
+        plt.plot(range(len(num_stock)), num_stock, label=f"{result.policy_name}", color=result.product_color)
 
     plt.legend()
     plt.show(block=False)
