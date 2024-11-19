@@ -10,7 +10,10 @@ model = LpProblem("Knapsack", sense=LpMaximize)
 
 x = [LpVariable(f"x_{i + 1}", cat=LpBinary) for i in range(n)]
 
+# Objective Function: Maximize the total price
 model += lpDot(prices, x)
+
+# Constrains: total weight less than carry weight
 model += lpDot(weights, x) <= carry_weight
 
 status = model.solve()

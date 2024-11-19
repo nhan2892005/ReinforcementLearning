@@ -15,7 +15,7 @@ plt.ion()
 
 # List of policy classes
 policy_list = [
-    GreedyPolicy,
+    GreedyPolicy, 
     RandomPolicy,
     GreedySorted,
     BestFit,
